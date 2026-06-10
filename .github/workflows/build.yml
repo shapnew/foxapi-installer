@@ -13,7 +13,7 @@ jobs:
         include:
           - platform: windows-latest
             name: windows
-            args: ""
+            args: "--bundles nsis"
           - platform: macos-latest
             name: macos
             # 同时包含 Intel 和 Apple Silicon 的通用包,所有 Mac 都能用
@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: 拉取代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 安装 Linux 系统依赖
         if: matrix.name == 'linux'
@@ -40,7 +40,7 @@ jobs:
           version: 10
 
       - name: 安装 Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
