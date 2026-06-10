@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+/* Claude 经典配色变量 */
+@theme {
+  --color-claude-orange: #D97757;
+  --color-claude-orange-light: #E8956F;
+  --color-claude-orange-dark: #C4654A;
+  --color-claude-warm: #F5E6D3;
+
+  --color-primary-50: #FFF8F5;
+  --color-primary-100: #FFEDE5;
+  --color-primary-200: #FFD4C2;
+  --color-primary-300: #FFBDAA;
+  --color-primary-500: #D97757;
+  --color-primary-600: #C4654A;
+  --color-primary-700: #A8533D;
+
+  --color-bg-primary: #FFFAF8;
+  --color-bg-secondary: #FFF5F0;
+  --color-bg-tertiary: #FFF0E8;
+  --color-bg-card: #FFFFFF;
+
+  --color-text-primary: #2D1810;
+  --color-text-secondary: #5C4033;
+  --color-text-muted: #8B7355;
+  --color-text-inverse: #FFFAF8;
+  --color-text-accent: #D97757;
+
+  --color-border: #E8DDD5;
+  --color-border-hover: #D4C4B8;
+  --color-border-focus: #D97757;
+  --color-border-subtle: #F0E8E0;
+
+  --color-success: #6B8E5A;
+  --color-success-light: #E8F0E4;
+  --color-warning: #D4A843;
+  --color-warning-light: #FFF4D9;
+  --color-error: #C75450;
+  --color-error-light: #FFE8E7;
+
+  --shadow-sm: 0 1px 2px rgba(45, 24, 16, 0.04);
+  --shadow-md: 0 4px 12px rgba(45, 24, 16, 0.06);
+  --shadow-lg: 0 8px 24px rgba(45, 24, 16, 0.08);
+  --shadow-xl: 0 12px 40px rgba(45, 24, 16, 0.12);
+  --shadow-glow: 0 0 40px rgba(217, 119, 87, 0.15);
+}
+
+/* 全局样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, 'Noto Sans SC', 'PingFang SC',
+               'Microsoft YaHei', sans-serif;
+  background: linear-gradient(135deg, #FFFAF8 0%, #FFF5F0 50%, #FFEDE5 100%);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  user-select: none;
+  line-height: 1.8;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* 装饰性背景 */
+.bg-pattern {
+  background-image: radial-gradient(circle at 20% 50%, rgba(217, 119, 87, 0.03) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(217, 119, 87, 0.04) 0%, transparent 40%),
+                    radial-gradient(circle at 40% 80%, rgba(232, 149, 111, 0.03) 0%, transparent 50%);
+}
+
+/* 页面切换动画 */
+.page-enter {
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 按钮悬停动画 */
+.btn-hover-lift {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-hover-lift:hover {
+  transform: translateY(-1px);
+}
+
+.btn-hover-lift:active {
+  transform: translateY(0);
+}
+
+/* 输入框聚焦动画 */
+.input-focus-ring {
+  transition: all 0.2s ease;
+}
+
+.input-focus-ring:focus {
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.1);
+}
+
+/* 进度条脉冲动画 */
+.progress-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* 成功动画 */
+.success-check {
+  animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Logo 发光动画 */
+.logo-glow {
+  animation: logoGlow 3s ease-in-out infinite;
+}
+
+@keyframes logoGlow {
+  0%, 100% { box-shadow: 0 0 30px rgba(217, 119, 87, 0.2); }
+  50% { box-shadow: 0 0 50px rgba(217, 119, 87, 0.3); }
+}
+
+/* 标题栏拖拽区域 */
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+
+button, input, textarea, a {
+  -webkit-app-region: no-drag;
+}
+
+/* 文字渐变效果 */
+.text-gradient {
+  background: linear-gradient(135deg, #D97757 0%, #E8956F 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 卡片悬停效果 */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* 分隔线渐变 */
+.divider-gradient {
+  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+}
+
+/* 柔和阴影输入框 */
+.input-soft {
+  box-shadow: inset 0 2px 4px rgba(45, 24, 16, 0.03);
+}
+
+/* 按钮内阴影 */
+.btn-inner-shadow {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}

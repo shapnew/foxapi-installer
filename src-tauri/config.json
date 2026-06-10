@@ -1,0 +1,25 @@
+{
+  "_comment": "注意：当前 Rust 代码尚未读取本文件，真实配置在 src/installer.rs 的常量中（CCSWITCH_VERSION / API_ENDPOINT 等）。此处仅作为未来'外部可配置化'的占位，已与代码保持一致以免误导。",
+  "downloads": {
+    "codex": {
+      "source": "microsoft-store",
+      "store_id": "9plm9xgg6vks",
+      "method": "winget"
+    },
+    "cc_switch": {
+      "source": "github",
+      "repo": "farion1231/cc-switch",
+      "version": "v3.16.1",
+      "urls": {
+        "windows": "https://github.com/farion1231/cc-switch/releases/download/v3.16.1/CC-Switch-v3.16.1-Windows.msi",
+        "macos": "https://github.com/farion1231/cc-switch/releases/download/v3.16.1/CC-Switch-v3.16.1-macOS.dmg",
+        "linux_x86_64": "https://github.com/farion1231/cc-switch/releases/download/v3.16.1/CC-Switch-v3.16.1-Linux-x86_64.AppImage",
+        "linux_arm64": "https://github.com/farion1231/cc-switch/releases/download/v3.16.1/CC-Switch-v3.16.1-Linux-arm64.AppImage"
+      }
+    }
+  },
+  "proxy": {
+    "validate_url": "https://foxapi.chat/v1/models",
+    "api_url": "https://foxapi.chat/v1"
+  }
+}
