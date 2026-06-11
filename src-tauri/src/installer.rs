@@ -147,12 +147,26 @@ async fn install_steps(
         );
     }
 
-    // 1. 安装 Codex（仅 Windows：Codex 是微软商店应用，winget 也只有 Windows 有）
+    // 1. 安装 Codex（仅 Windows：Codex 是微软商店应用，winget 也只有 Windows 有）。
+    //    注意：Codex 安装失败【不阻断】后续步骤——很多精简版/LTSC 系统没有 winget 甚至没有商店，
+    //    但 CC-switch + FoxAPI 配置才是核心，必须继续完成。
     if install_codex {
         if std::env::consts::OS == "windows" {
-            report(progress, "codex", "running", 0, Some("正在通过 Microsoft Store 安装 Codex，可能需要几分钟，请耐心等待..."));
-            download_and_install_codex().await?;
-            report(progress, "codex", "completed", 100, Some("Codex 安装完成"));
+            report(progress, "codex", "running", 0, Some("正在安装 Codex（Microsoft Store），可能需要几分钟，请耐心等待..."));
+            match download_and_install_codex(progress).await {
+                Ok(()) => {
+                    report(progress, "codex", "completed", 100, Some("Codex 安装步骤完成"));
+                }
+                Err(e) => {
+                    report(
+                        progress,
+                        "codex",
+                        "error",
+                        100,
+                        Some(&format!("Codex 未能自动安装：{e}。已跳过，继续安装其余组件（可稍后从微软商店手动安装 Codex）")),
+                    );
+                }
+            }
         } else {
             report(progress, "codex", "completed", 100, Some("当前系统非 Windows，已跳过 Codex（微软商店应用仅 Windows 可用）"));
         }
@@ -295,20 +309,87 @@ async fn download_file(
 
 // ─── Codex 安装（Microsoft Store / winget）─────────────────────────────────
 
-async fn download_and_install_codex() -> Result<()> {
-    let store_id = "9plm9xgg6vks";
-    let output = Command::new("winget")
+const CODEX_STORE_ID: &str = "9plm9xgg6vks";
+
+/// 定位 winget：先试 PATH，再试它的标准安装位置（%LOCALAPPDATA%\Microsoft\WindowsApps）。
+/// 后者覆盖"已安装但 PATH/执行别名不可用"的情况。
+fn find_winget() -> Option<PathBuf> {
+    if Command::new("winget")
+        .arg("--version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
+        return Some(PathBuf::from("winget"));
+    }
+    if let Some(local) = dirs::data_local_dir() {
+        let p = local.join("Microsoft").join("WindowsApps").join("winget.exe");
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+/// 打开 Codex 的微软商店页面：
+/// - 系统有商店 App → 打开商店内的 Codex 详情页（点【获取】即装）
+/// - 没有商店（LTSC/精简版）→ 打开微软官网网页版 apps.microsoft.com（浏览器必有，页面上有官方安装/下载按钮）
+fn open_codex_store_page(progress: &Channel<ProgressUpdate>) {
+    // 通过注册表检测 ms-windows-store 协议是否有处理器（= 是否装有商店）
+    let has_store = Command::new("reg")
+        .args(["query", "HKCR\\ms-windows-store"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if has_store {
+        let url = format!("ms-windows-store://pdp/?ProductId={CODEX_STORE_ID}");
+        let _ = Command::new("rundll32.exe")
+            .args(["url.dll,FileProtocolHandler", &url])
+            .status();
+        report(
+            progress,
+            "codex",
+            "running",
+            90,
+            Some("已打开微软商店的 Codex 页面，请点击【获取/安装】完成安装（其余组件不受影响，将继续进行）"),
+        );
+    } else {
+        // 官网网页版：无商店的系统也能访问，页面提供官方安装/下载入口
+        let url = format!("https://apps.microsoft.com/detail/{CODEX_STORE_ID}?hl=zh-CN&gl=CN");
+        let _ = Command::new("rundll32.exe")
+            .args(["url.dll,FileProtocolHandler", &url])
+            .status();
+        report(
+            progress,
+            "codex",
+            "running",
+            90,
+            Some("本机未检测到微软商店，已在浏览器打开 Codex 官方页面（apps.microsoft.com），请点击页面上的【Install/下载】按钮安装（其余组件不受影响，将继续进行）"),
+        );
+    }
+}
+
+async fn download_and_install_codex(progress: &Channel<ProgressUpdate>) -> Result<()> {
+    // 找不到 winget（精简版/LTSC/未装 App Installer 的老系统很常见）→ 打开商店页面让用户点一下
+    let Some(winget) = find_winget() else {
+        report(progress, "codex", "running", 50, Some("未检测到 winget，改为打开 Codex 安装页面..."));
+        open_codex_store_page(progress);
+        return Ok(());
+    };
+
+    let output = Command::new(&winget)
         .args([
             "install",
             "--id",
-            store_id,
+            CODEX_STORE_ID,
             "--source",
             "msstore",
             "--accept-package-agreements",
             "--accept-source-agreements",
         ])
         .output()
-        .context("无法启动 winget（请确认系统已安装 \"应用安装程序\"/App Installer）")?;
+        .context("无法启动 winget")?;
 
     if output.status.success() {
         Ok(())
@@ -327,7 +408,17 @@ async fn download_and_install_codex() -> Result<()> {
         {
             Ok(())
         } else {
-            anyhow::bail!("Codex 安装失败: {}", combined.trim());
+            // winget 存在但安装失败（国内访问 msstore 源不稳定很常见）→ 退而打开商店/官网页面手动装
+            let brief: String = combined.trim().chars().take(160).collect();
+            report(
+                progress,
+                "codex",
+                "running",
+                60,
+                Some(&format!("winget 自动安装未成功（{brief}），改为打开 Codex 安装页面...")),
+            );
+            open_codex_store_page(progress);
+            Ok(())
         }
     }
 }
@@ -516,22 +607,20 @@ async fn download_and_install_ccswitch(
 fn install_dmg_macos(dmg: &Path) -> Result<()> {
     let dmg_str = dmg.to_str().context("dmg 路径非法")?;
 
-    // 挂载
+    // 用固定挂载点挂载——不解析 hdiutil 输出（-quiet 下可能无输出，解析不可靠）
+    let mount_dir = std::env::temp_dir().join("ccswitch-dmg-mount");
+    let mount = mount_dir.to_str().context("挂载点路径非法")?.to_string();
+    // 清理可能的残留挂载，再确保目录存在
+    let _ = Command::new("hdiutil").args(["detach", "-quiet", &mount]).status();
+    fs::create_dir_all(&mount_dir)?;
+
     let out = Command::new("hdiutil")
-        .args(["attach", "-nobrowse", "-quiet", dmg_str])
+        .args(["attach", "-nobrowse", "-quiet", "-mountpoint", &mount, dmg_str])
         .output()
         .context("无法运行 hdiutil")?;
     if !out.status.success() {
         anyhow::bail!("挂载 dmg 失败：{}", String::from_utf8_lossy(&out.stderr));
     }
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    let mount = stdout
-        .lines()
-        .filter_map(|l| l.split('\t').last())
-        .map(|s| s.trim())
-        .find(|s| s.starts_with("/Volumes/"))
-        .map(|s| s.to_string())
-        .context("无法解析 dmg 挂载点")?;
 
     // 在挂载卷里找到 .app，拷贝到 /Applications（不可写则退回 ~/Applications）
     let result = (|| -> Result<()> {
@@ -608,10 +697,23 @@ fn install_appimage_linux(appimage: &Path) -> Result<PathBuf> {
     );
     fs::write(apps_dir.join("cc-switch.desktop"), desktop)?;
 
-    // 刷新桌面数据库让协议处理器生效；并启动一次（均 best-effort）
+    // 刷新桌面数据库 + 显式把 ccswitch:// 协议绑定到该 .desktop（部分桌面环境仅有 MimeType 不够）
     let _ = Command::new("update-desktop-database").arg(&apps_dir).status();
+    let _ = Command::new("xdg-mime")
+        .args(["default", "cc-switch.desktop", "x-scheme-handler/ccswitch"])
+        .status();
+
+    // 启动一次（best-effort）。若因缺 libfuse2 启动失败，给出明确提示而不是默默失败。
     if let Some(s) = dest.to_str() {
-        let _ = Command::new(s).spawn();
+        match Command::new(s).spawn() {
+            Ok(_) => {}
+            Err(e) => {
+                anyhow::bail!(
+                    "CC-switch 已放置到 {dest}，但启动失败：{e}。\n常见原因：系统缺少 AppImage 运行所需的 libfuse2。\n请运行: sudo apt install libfuse2 （Ubuntu/Debian）或 sudo dnf install fuse-libs （Fedora）后，手动运行 {dest}",
+                    dest = dest.display(),
+                );
+            }
+        }
     }
 
     Ok(dest)
