@@ -150,12 +150,12 @@ installer/
 
 ## 🐛 常见问题
 
-### Q: Codex 安装失败？
-A: 检查 winget 是否安装：
-```bash
-winget --version
-```
-如果没有，从 Microsoft Store 安装 "应用安装程序"。
+### Q: Codex 安装失败 / 提示"无法启动 winget"？
+A: 程序会自动按四层兜底，**Codex 失败不会影响 CC-switch 和 FoxAPI 配置**：
+1. 在 PATH 和标准位置（`%LOCALAPPDATA%\Microsoft\WindowsApps`）查找 winget 并静默安装；
+2. winget 不可用或安装失败（国内 msstore 源不稳常见）→ 自动打开**微软商店 App** 的 Codex 页面，用户点【获取】即可；
+3. 系统没有商店（LTSC/精简版）→ 自动在浏览器打开 **Codex 官网页面**（apps.microsoft.com/detail/9plm9xgg6vks），页面上有官方安装/下载按钮；
+4. 以上均完成或失败后，继续安装其余组件，绝不中断。
 
 ### Q: CC-switch 下载失败？
 A: 检查下载链接是否正确，网络是否通畅。
